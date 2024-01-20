@@ -16,10 +16,11 @@ Globals:
 Resources:
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
-  getAllItemsFunction:
+  AdminGetAllItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/admin/get-all-items.getAllItemsHandler
+      CodeUri: dist/admin-get-all-items/
+      Handler: handler.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref LotteryWinnersTable
@@ -33,10 +34,11 @@ Resources:
             Path: /admin/users
             Method: GET
 
-  getByIdFunction:
+  AdminGetByIdFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/admin/get-by-id.getByIdHandler
+      CodeUri: dist/admin-get-by-id/
+      Handler: handler.handler
       Policies:
         # should keep to Least Responsibility Principle
         - DynamoDBCrudPolicy:
@@ -51,10 +53,11 @@ Resources:
             Path: /admin/users/{id}
             Method: GET
 
-  putItemFunction:
+  AdminPutItemFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/admin/put-item.putItemHandler
+      CodeUri: dist/admin-put-item/
+      Handler: handler.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref LotteryWinnersTable
@@ -69,10 +72,11 @@ Resources:
             Method: PATCH
 
   # USER LAMBDAS
-  registerUserFunction:
+  UserRegistrationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/user/user-registration.userRegistrationHandler
+      CodeUri: dist/user-registration/ 
+      Handler: handler.handler
       Policies:
         - Statement:
             - Effect: Allow

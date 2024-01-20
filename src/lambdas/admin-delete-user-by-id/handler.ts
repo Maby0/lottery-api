@@ -1,5 +1,5 @@
 import {
-  AdminGetUserCommand,
+  AdminDeleteUserCommand,
   CognitoIdentityProviderClient
 } from '@aws-sdk/client-cognito-identity-provider'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
@@ -10,7 +10,7 @@ export const handler = async (
   const username = event.pathParameters?.id
 
   const client = new CognitoIdentityProviderClient({})
-  const command = new AdminGetUserCommand({
+  const command = new AdminDeleteUserCommand({
     UserPoolId: process.env['USER_POOL_ID'],
     Username: username
   })

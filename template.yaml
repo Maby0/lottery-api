@@ -16,17 +16,21 @@ Globals:
 Resources:
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
-  AdminGetAllItemsFunction:
+  AdminGetAllUsersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/admin-get-all-items/
+      CodeUri: dist/admin-get-all-users/
       Handler: handler.handler
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref LotteryWinnersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+              Resource:
+                !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
       Environment:
         Variables:
-          SAMPLE_TABLE: !Ref LotteryWinnersTable
+          USER_POOL_ID: !Ref LotteryPlayersUserPool
       Events:
         Api:
           Type: Api
@@ -86,7 +90,6 @@ Resources:
                 !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
       Environment:
         Variables:
-          LOTTERY_PLAYERS_USER_POOL: !Ref LotteryPlayersUserPool
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
       Events:
         Api:
@@ -109,7 +112,6 @@ Resources:
                 !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
       Environment:
         Variables:
-          LOTTERY_PLAYERS_USER_POOL: !Ref LotteryPlayersUserPool
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
       Events:
         Api:

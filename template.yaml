@@ -95,6 +95,29 @@ Resources:
             Path: /auth/signup
             Method: POST
 
+  UserRegistrationConfirmationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/user-registration-confirmation/ 
+      Handler: handler.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ConfirmSignUpCommand
+              Resource:
+                !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
+      Environment:
+        Variables:
+          LOTTERY_PLAYERS_USER_POOL: !Ref LotteryPlayersUserPool
+          COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /auth/confirm
+            Method: POST
+
   # TABLE TO HOLD LOTTERY WINNERS
   # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
@@ -113,13 +136,10 @@ Resources:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: LotteryPlayers
-        Policies:
-          PasswordPolicy:
-            MinimumLength: 8
-            RequireUppercase: true
-            RequireLowercase: true
-            RequireNumbers: true
-            RequireSymbols: false
+        AutoVerifiedAttributes:
+          - email
+        VerificationMessageTemplate:
+          DefaultEmailOption: CONFIRM_WITH_CODE
 
   LotteryPlayersUserPoolClient:
     Type: AWS::Cognito::UserPoolClient

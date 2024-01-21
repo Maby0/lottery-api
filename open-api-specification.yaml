@@ -1,0 +1,77 @@
+openapi: '3.0.1'
+info:
+  title: 'My API'
+
+paths:
+  /admin/users/{id}:
+    patch:
+      x-amazon-apigateway-integration:
+        credentials:
+          Fn::GetAtt: [ ApiGatewayStepFunctionsRole, Arn ]
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: 
+            Fn::Sub: |-
+              {
+                "input": "{\"id\": \"$input.params('id')\", \"updateParams\": $util.escapeJavaScript($input.json('$'))}",
+                "stateMachineArn": "${AdminUpdateUserStateMachine}"
+              }
+        responses:
+          200:
+            statusCode: 200
+            responseTemplates:
+              application/json: |
+                { "executionId": "$input.json('executionArn').split(':').get(7)"}
+          400:
+            statusCode: 400
+            responseTemplates:
+              application/json: |
+                {
+                  "error": "$util.escapeJavaScript($input.json('$.Error'))"
+                }
+      responses:
+        200:
+          $ref: '#/components/responses/200Execution'
+        404:
+          $ref: '#/components/responses/Error'
+      summary: Start AdminUpdateUserStateMachine
+      description: 'Invoke State Machine with input'
+
+components:
+  schemas:
+    ExecutionCreated:
+      title: Created execution
+      type: object
+      properties: 
+        executionId:
+          type: string
+        required:
+          - executionId
+    Error:
+      title: Error
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+
+  responses:
+    200Execution:
+      description: Result response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ExecutionCreated'
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

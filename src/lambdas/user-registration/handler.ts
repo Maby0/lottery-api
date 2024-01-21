@@ -7,14 +7,20 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const { username, password, email } = JSON.parse(event.body || '{}')
+  const { username, password, email, givenName, familyName } = JSON.parse(
+    event.body || '{}'
+  )
 
   const client = new CognitoIdentityProviderClient({})
   const command = new SignUpCommand({
     ClientId: process.env['COGNITO_CLIENT_ID'],
     Username: username,
     Password: password,
-    UserAttributes: [{ Name: 'email', Value: email }]
+    UserAttributes: [
+      { Name: 'email', Value: email },
+      { Name: 'given_name', Value: givenName },
+      { Name: 'family_name', Value: familyName }
+    ]
   })
 
   const result = await client.send(command)

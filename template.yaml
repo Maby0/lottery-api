@@ -6,14 +6,116 @@ Transform:
 - AWS::Serverless-2016-10-31
 
 Globals:
+  Api:
+    OpenApiVersion: 3.0.1
   Function:
     Runtime: nodejs18.x
     Timeout: 30
     MemorySize: 128
     Architectures:
-      - "x86_64"
+      - x86_64
 
 Resources:
+  ## STATE MACHINES
+  AdminUpdateUserStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: admin-update-user-state-machine
+      Definition:
+        Comment: Update User in Cognito User Pool
+        StartAt: ParallelUpdate
+        States:
+          ParallelUpdate:
+            Type: Parallel
+            Branches:
+              - StartAt: UpdateGivenName
+                States:
+                  UpdateGivenName:
+                    Type: Task
+                    Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminUpdateUserByIdFunction}
+                    Parameters:
+                      userId.$: $.id
+                      updateField: given_name
+                      updateValue.$: $.updateParams.givenName
+                    End: true
+              - StartAt: UpdateFamilyName
+                States:
+                  UpdateFamilyName:
+                    Type: Task
+                    Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminUpdateUserByIdFunction}
+                    Parameters:
+                      userId.$: $.id
+                      updateField: family_name
+                      updateValue.$: $.updateParams.familyName
+                    End: true
+            Catch: 
+              - ErrorEquals: ["States.ALL"]
+                Next: HandleError
+            Next: ParallelUpdateEnd
+          HandleError:
+            Type: Fail
+            Error: "ErrorUpdatingUserAttributes"
+            Cause: "An error occurred while updating user attributes"
+          ParallelUpdateEnd:
+            Type: Pass
+            Result: Parallel Update Complete
+            End: true
+      RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/admin-commands-state-machine-role
+        
+  AdminCommandsStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: admin-commands-state-machine-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowLambdaInvoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                  Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+
+  AdminUserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Test
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: dist/open-api-specification.yaml
+
+  ApiGatewayStepFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowApiGatewayServiceToAssumeRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Policies:
+        - PolicyName: CallStepFunctions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref AdminUpdateUserStateMachine
+
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
   AdminGetAllUsersFunction:
@@ -31,12 +133,12 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /admin/users
-            Method: GET
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /admin/users
+      #       Method: GET
 
   AdminGetUserByIdFunction:
     Type: AWS::Serverless::Function
@@ -53,12 +155,12 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /admin/users/{id}
-            Method: GET
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /admin/users/{id}
+      #       Method: GET
 
   AdminUpdateUserByIdFunction:
     Type: AWS::Serverless::Function
@@ -75,12 +177,12 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /admin/users/{id}
-            Method: PATCH
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /admin/users/{id}
+      #       Method: PATCH
 
   AdminDeleteUserByIdFunction:
     Type: AWS::Serverless::Function
@@ -97,12 +199,12 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /admin/users/{id}
-            Method: DELETE
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /admin/users/{id}
+      #       Method: DELETE
 
   # USER LAMBDAS
   UserRegistrationFunction:
@@ -120,12 +222,12 @@ Resources:
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /auth/signup
-            Method: POST
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /auth/signup
+      #       Method: POST
 
   UserRegistrationConfirmationFunction:
     Type: AWS::Serverless::Function
@@ -142,12 +244,12 @@ Resources:
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /auth/confirm
-            Method: POST
+      # Events:
+      #   Api:
+      #     Type: Api
+      #     Properties:
+      #       Path: /auth/confirm
+      #       Method: POST
 
   # TABLE TO HOLD LOTTERY WINNERS
   # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
@@ -169,6 +271,15 @@ Resources:
         UserPoolName: LotteryPlayers
         AutoVerifiedAttributes:
           - email
+        Schema:
+          - Name: given_name
+            AttributeDataType: String
+            Mutable: true
+            Required: true
+          - Name: family_name
+            AttributeDataType: String
+            Mutable: true
+            Required: true
         VerificationMessageTemplate:
           DefaultEmailOption: CONFIRM_WITH_CODE
 
@@ -181,4 +292,4 @@ Resources:
 Outputs:
   WebEndpoint:
     Description: "API Gateway endpoint URL for Prod stage"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${AdminUserApi}.execute-api.${AWS::Region}.amazonaws.com/Test/"

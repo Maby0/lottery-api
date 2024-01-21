@@ -37,8 +37,39 @@ paths:
           $ref: '#/components/responses/200Execution'
         404:
           $ref: '#/components/responses/Error'
-      summary: Start AdminUpdateUserStateMachine
-      description: 'Invoke State Machine with input'
+    delete:
+      x-amazon-apigateway-integration:
+        credentials:
+          Fn::GetAtt: [ApiGatewayStepFunctionsRole, Arn]
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json:
+            Fn::Sub: |-
+              {
+                "input": "{\"id\": \"$input.params('id')\"}",
+                "stateMachineArn": "${AdminDeleteUserStateMachine}"
+              }
+        responses:
+          200:
+            statusCode: 200
+            responseTemplates:
+              application/json: |
+                { "executionId": "$input.json('executionArn').split(':').get(7)"}
+          400:
+            statusCode: 400
+            responseTemplates:
+              application/json: |
+                {
+                  "error": "$util.escapeJavaScript($input.json('$.Error'))"
+                }
+      responses:
+        200:
+          $ref: '#/components/responses/200Execution'
+        404:
+          $ref: '#/components/responses/Error'
 
 components:
   schemas:

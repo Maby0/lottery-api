@@ -61,6 +61,22 @@ Resources:
             Result: Parallel Update Complete
             End: true
       RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/admin-commands-state-machine-role
+
+  AdminDeleteUserStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: admin-delete-user-state-machine
+      Definition:
+        Comment: Delete User in Cognito User Pool
+        StartAt: DeleteUser
+        States:
+          DeleteUser:
+            Type: Task
+            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminDeleteUserByIdFunction}
+            Parameters:
+              userId.$: $.id
+            End: true
+      RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/admin-commands-state-machine-role
         
   AdminCommandsStateMachineRole:
     Type: AWS::IAM::Role
@@ -114,7 +130,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - states:StartExecution
-                Resource: !Ref AdminUpdateUserStateMachine
+                Resource: 
+                  - !Ref AdminUpdateUserStateMachine
+                  - !Ref AdminDeleteUserStateMachine
 
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
@@ -177,12 +195,6 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /admin/users/{id}
-      #       Method: PATCH
 
   AdminDeleteUserByIdFunction:
     Type: AWS::Serverless::Function
@@ -199,12 +211,6 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /admin/users/{id}
-      #       Method: DELETE
 
   # USER LAMBDAS
   UserRegistrationFunction:

@@ -144,6 +144,32 @@ Resources:
                   - !GetAtt AdminGetAllUsersFunction.Arn
                   - !GetAtt AdminGetUserByIdFunction.Arn
 
+  ApiGatewayAuthInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowApiGatewayServiceToAssumeRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Policies:
+        - PolicyName: InvokeFunctions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt UserRegistrationFunction.Arn
+                  - !GetAtt UserRegistrationConfirmationFunction.Arn
+
+
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
   AdminGetAllUsersFunction:
@@ -161,13 +187,6 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /admin/users
-      #       Method: GET
-      #       RestApiId: !Ref AdminUserApi
 
   AdminGetUserByIdFunction:
     Type: AWS::Serverless::Function
@@ -184,12 +203,6 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /admin/users/{id}
-      #       Method: GET
 
   AdminUpdateUserByIdFunction:
     Type: AWS::Serverless::Function

@@ -3,14 +3,39 @@ info:
   title: 'My API'
 
 paths:
+  /admin/users:
+    get:
+      responses:
+        '200':
+          description: Successful response
+      x-amazon-apigateway-integration:
+        credentials: 
+          Fn::GetAtt: [ ApiGatewayAdminStepFunctionsRole, Arn ]
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+        type: aws_proxy
+        uri: 
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminGetAllUsersFunction}/invocations
   /admin/users/{id}:
+    get:
+      responses:
+        '200':
+          description: Successful response
+      x-amazon-apigateway-integration:
+        credentials: 
+          Fn::GetAtt: [ ApiGatewayAdminStepFunctionsRole, Arn ]
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+        type: aws_proxy
+        uri: 
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminGetUserByIdFunction}/invocations
     patch:
       x-amazon-apigateway-integration:
         credentials:
-          Fn::GetAtt: [ ApiGatewayStepFunctionsRole, Arn ]
+          Fn::GetAtt: [ ApiGatewayAdminStepFunctionsRole, Arn ]
+        httpMethod: POST
         uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
-        httpMethod: POST
         type: aws
         requestTemplates:
           application/json: 
@@ -40,7 +65,7 @@ paths:
     delete:
       x-amazon-apigateway-integration:
         credentials:
-          Fn::GetAtt: [ApiGatewayStepFunctionsRole, Arn]
+          Fn::GetAtt: [ApiGatewayAdminStepFunctionsRole, Arn]
         uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
         httpMethod: POST

@@ -109,7 +109,7 @@ Resources:
           Parameters:
             Location: dist/open-api-specification.yaml
 
-  ApiGatewayStepFunctionsRole:
+  ApiGatewayAdminStepFunctionsRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -133,6 +133,16 @@ Resources:
                 Resource: 
                   - !Ref AdminUpdateUserStateMachine
                   - !Ref AdminDeleteUserStateMachine
+        - PolicyName: InvokeFunctions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt AdminGetAllUsersFunction.Arn
+                  - !GetAtt AdminGetUserByIdFunction.Arn
 
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
@@ -157,6 +167,7 @@ Resources:
       #     Properties:
       #       Path: /admin/users
       #       Method: GET
+      #       RestApiId: !Ref AdminUserApi
 
   AdminGetUserByIdFunction:
     Type: AWS::Serverless::Function

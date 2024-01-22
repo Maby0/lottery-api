@@ -236,6 +236,36 @@ Resources:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
 
+  AdminPickLotteryWinnerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/pick-lottery-winner/
+      Handler: handler.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+              Resource:
+                !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref LotteryPlayersUserPool
+
+  # UTILITY LAMBDAS
+  PutObjectToDynamoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/put-object-to-dynamo/
+      Handler: handler.handler
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+            Resource: 
+              - !GetAtt LotteryWinnersTable.Arn
+
   # USER LAMBDAS
   UserRegistrationFunction:
     Type: AWS::Serverless::Function
@@ -252,12 +282,6 @@ Resources:
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /auth/signup
-      #       Method: POST
 
   UserRegistrationConfirmationFunction:
     Type: AWS::Serverless::Function
@@ -274,21 +298,14 @@ Resources:
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
-      # Events:
-      #   Api:
-      #     Type: Api
-      #     Properties:
-      #       Path: /auth/confirm
-      #       Method: POST
 
   # TABLE TO HOLD LOTTERY WINNERS
-  # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
-  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
   LotteryWinnersTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
+      TableName: lottery-winners-table
       PrimaryKey:
-        Name: id
+        Name: userId
         Type: String
       ProvisionedThroughput:
         ReadCapacityUnits: 2
@@ -298,7 +315,7 @@ Resources:
   LotteryPlayersUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
-        UserPoolName: LotteryPlayers
+        UserPoolName: lottery-players-user-pool
         AutoVerifiedAttributes:
           - email
         Schema:

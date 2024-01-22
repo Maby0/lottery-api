@@ -23,9 +23,16 @@ export const handler = async (
     ]
   })
 
-  const result = await client.send(command)
-  return {
-    statusCode: 200,
-    body: JSON.stringify(result)
+  try {
+    const result = await client.send(command)
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result)
+    }
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify(`Error creating user: ${error}`)
+    }
   }
 }

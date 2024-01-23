@@ -12,12 +12,9 @@ AWS SAM [https://aws.amazon.com/serverless/sam/](https://aws.amazon.com/serverle
 
 NOTE: Auth endpoints are not yet secured. Avoid submitting any personal information with your requests.
 
-Path: /auth/signup
-
-Method: POST
-
-Description: Create a user account for lottery participants. Returns an error message if the user already exists.
-
+Path: /auth/signup<br>
+Method: POST<br>
+Description: Create a user account for lottery participants. Returns an error message if the user already exists.<br>
 Request body:
 
 ```
@@ -26,16 +23,14 @@ Request body:
   "password": "testPassword1$",
   "email": "test@email.com",
   "givenName": "Test",
-  "familyName": "McTester"}
+  "familyName": "McTester"
+}
 ```
 
 <br>
-Path: /auth/confirm
-
-Method: POST
-
-Description: Confirm user registration with the provided confirmation code.
-
+Path: /auth/confirm<br>
+Method: POST<br>
+Description: Confirm user registration with the provided confirmation code.<br>
 Request body:
 
 ```
@@ -46,53 +41,39 @@ Request body:
 ```
 
 <br>
-Path: /admin/users
-
-Method: GET
-
-Description: Serves a list of users from Cognito with their confirmation status information
+Path: /admin/users<br>
+Method: GET<br>
+Description: Serves a list of users from Cognito with their confirmation status information<br>
 
 <br>
-Path: /admin/users/{id}
-
-Method: GET
-
-Description: Serves a user from Cognito based on the given ID
+Path: /admin/users/{id}<br>
+Method: GET<br>
+Description: Serves a user from Cognito based on the given ID<br>
 
 <br>
-Path: /admin/users/{id}
-
-Method: PATCH
-
-Description: Executes the AdminUpdateUserStateMachine and returns an execution ID
+Path: /admin/users/{id}<br>
+Method: PATCH<br>
+Description: Executes the AdminUpdateUserStateMachine and returns an execution ID<br>
 
 <br>
-Path: /admin/users/{id}
-
-Method: DELETE
-
-Description: Executes the AdminDeleteUserStateMachine
+Path: /admin/users/{id}<br>
+Method: DELETE<br>
+Description: Executes the AdminDeleteUserStateMachine<br>
 
 <br>
-Path: /admin/lottery
-
-Method: POST
-
-Description: Executes the AdminCreateLotteryStateMachine and returns an execution ID. The winner of the lottery will be sent an email to let them know that they've won.
-
-Request body: {}
+Path: /admin/lottery<br>
+Method: POST<br>
+Description: Executes the AdminCreateLotteryStateMachine and returns an execution ID. The winner of the lottery will be sent an email to let them know that they've won.<br>
+Request body: empty <br>
 
 <br>
-Path: /public/lottery/winner
-
-Method: POST
-
-Description: check if a given email address has won the lottery.
-
+Path: /public/lottery/winner<br>
+Method: POST<br>
+Description: check if a given email address has won the lottery.<br>
 Request body:
 
 ```
 {
-  { "userEmail": "test@email.com" }
+  "userEmail": "test@email.com"
 }
 ```

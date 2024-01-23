@@ -23,6 +23,8 @@ export const handler = async (input: LotteryWinnerEmail) => {
         }
       }
     },
+    // throw away email
+    // best practice is store in secrets manager or SSM
     Source: 'mabyo.dev@gmail.com'
   })
 

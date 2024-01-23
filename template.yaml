@@ -203,6 +203,7 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource:
+                  - !GetAtt UserCheckWinnerFunction.Arn
                   - !GetAtt UserRegistrationFunction.Arn
                   - !GetAtt UserRegistrationConfirmationFunction.Arn
 
@@ -319,11 +320,11 @@ Resources:
       Handler: handler.handler
       Policies:
         - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:SignUp
-              Resource:
-                !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
+          - Effect: Allow
+            Action:
+              - cognito-idp:SignUp
+            Resource:
+              !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
@@ -335,27 +336,32 @@ Resources:
       Handler: handler.handler
       Policies:
         - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:ConfirmSignUpCommand
-              Resource:
-                !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
+          - Effect: Allow
+            Action:
+              - cognito-idp:ConfirmSignUpCommand
+            Resource:
+              !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${LotteryPlayersUserPool}
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
 
-  ## DYNAMO DB
-  # LotteryWinnersTableTwo:
-  #   Type: AWS::Serverless::SimpleTable
-  #   Properties:
-  #     TableName: lottery-winners-table
-  #     PrimaryKey:
-  #       Name: userId
-  #       Type: String
-  #     ProvisionedThroughput:
-  #       ReadCapacityUnits: 2
-  #       WriteCapacityUnits: 2
+  UserCheckWinnerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/user-check-winner/
+      Handler: handler.handler
+      Policies: 
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+            Resource:
+              !GetAtt LotteryWinnersTable.Arn
+      Environment:
+        Variables:
+          LOTTERY_WINNERS_TABLE_NAME: !Ref LotteryWinnersTable
 
+  ## DYNAMO TABLE
   LotteryWinnersTable:
     Type: AWS::Serverless::SimpleTable
     Properties:

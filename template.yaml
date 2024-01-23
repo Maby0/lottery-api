@@ -77,7 +77,44 @@ Resources:
               userId.$: $.id
             End: true
       RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/admin-commands-state-machine-role
+
+  AdminCreateLotteryStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: admin-create-lottery-state-machine
+      Definition:
+        Comment: Pick a lottery winner, insert into LotteryWinnersTable, and contact winner
+        StartAt: PickLotteryWinner
+        States:
+          PickLotteryWinner:
+            Type: Task
+            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AdminPickLotteryWinnerFunction}
+            ResultPath: $.winnerData
+            Next: InsertIntoLotteryWinnersTable
+          InsertIntoLotteryWinnersTable:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:putItem
+            Parameters:
+              TableName: !Ref LotteryWinnersTable
+              Item:
+                userEmail:
+                  S.$: $.winnerData.userEmail
+                userId:
+                  S.$: $.winnerData.userId
+                userStatus:
+                  S.$: $.winnerData.userStatus
+            ResultPath: $.dynamoOutput
+            Next: NotifyWinner
+          NotifyWinner:
+            Type: Task
+            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${NotifyLotteryWinnerFunction}
+            Parameters:
+              winnerEmail.$: $.winnerData.userEmail
+            End: true
+      RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/admin-commands-state-machine-role
+
         
+  ## IAM ROLES
   AdminCommandsStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -98,16 +135,15 @@ Resources:
                   Action:
                     - lambda:InvokeFunction
                   Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
-
-  AdminUserApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Test
-      DefinitionBody:
-        'Fn::Transform':
-          Name: 'AWS::Include'
-          Parameters:
-            Location: dist/open-api-specification.yaml
+        - PolicyName: AllowDynamoDbPut
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:PutItem
+                  Resource: 
+                    - !GetAtt LotteryWinnersTable.Arn
 
   ApiGatewayAdminStepFunctionsRole:
     Type: AWS::IAM::Role
@@ -133,6 +169,7 @@ Resources:
                 Resource: 
                   - !Ref AdminUpdateUserStateMachine
                   - !Ref AdminDeleteUserStateMachine
+                  - !Ref AdminCreateLotteryStateMachine
         - PolicyName: InvokeFunctions
           PolicyDocument:
             Version: '2012-10-17'
@@ -169,6 +206,15 @@ Resources:
                   - !GetAtt UserRegistrationFunction.Arn
                   - !GetAtt UserRegistrationConfirmationFunction.Arn
 
+  AdminUserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Test
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: dist/open-api-specification.yaml
 
   ## LAMBDA RESOURCES
   # ADMIN LAMBDAS
@@ -252,19 +298,18 @@ Resources:
         Variables:
           USER_POOL_ID: !Ref LotteryPlayersUserPool
 
-  # UTILITY LAMBDAS
-  PutObjectToDynamoFunction:
+  NotifyLotteryWinnerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/put-object-to-dynamo/
+      CodeUri: dist/notify-lottery-winner/
       Handler: handler.handler
       Policies:
         - Statement:
           - Effect: Allow
             Action:
-              - dynamodb:PutItem
-            Resource: 
-              - !GetAtt LotteryWinnersTable.Arn
+              - ses:SendEmail
+            Resource:
+              - "*"
 
   # USER LAMBDAS
   UserRegistrationFunction:
@@ -299,19 +344,30 @@ Resources:
         Variables:
           COGNITO_CLIENT_ID: !Ref LotteryPlayersUserPoolClient
 
-  # TABLE TO HOLD LOTTERY WINNERS
+  ## DYNAMO DB
+  # LotteryWinnersTableTwo:
+  #   Type: AWS::Serverless::SimpleTable
+  #   Properties:
+  #     TableName: lottery-winners-table
+  #     PrimaryKey:
+  #       Name: userId
+  #       Type: String
+  #     ProvisionedThroughput:
+  #       ReadCapacityUnits: 2
+  #       WriteCapacityUnits: 2
+
   LotteryWinnersTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       TableName: lottery-winners-table
       PrimaryKey:
-        Name: userId
+        Name: userEmail
         Type: String
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
 
-  # COGNITO RESOURCES
+  ## COGNITO RESOURCES
   LotteryPlayersUserPool:
       Type: AWS::Cognito::UserPool
       Properties:

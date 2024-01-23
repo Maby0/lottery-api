@@ -1,4 +1,5 @@
 import {
+  AttributeType,
   CognitoIdentityProviderClient,
   ListUsersCommand,
   UserType
@@ -22,14 +23,23 @@ export const handler = async () => {
   }
 
   const lotteryWinner = pickRandomUserFromArray(listOfConfirmedUsers)
+  if (!lotteryWinner.Attributes?.length) {
+    throw Error('No attributes found associated with user')
+  }
+  const winnerEmailAddress = getEmailAddress(lotteryWinner.Attributes)
+
   console.log('The lottery winner is: ', lotteryWinner.Username)
   return {
     userId: lotteryWinner.Username,
     userStatus: lotteryWinner.UserStatus,
-    userAttributes: lotteryWinner.Attributes
+    userEmail: winnerEmailAddress
   }
 }
 
 const pickRandomUserFromArray = (arrayOfUsers: UserType[]) => {
   return arrayOfUsers[Math.floor(Math.random() * arrayOfUsers.length)]
+}
+
+const getEmailAddress = (listOfAttributes: AttributeType[]) => {
+  return listOfAttributes.find((att) => att.Name === 'email')?.Value
 }
